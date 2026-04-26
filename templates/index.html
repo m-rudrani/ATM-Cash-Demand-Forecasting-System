@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>⚡ ATM Cash Demand Forecast</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:        #080c14;
+      --surface:   #0f1724;
+      --card:      #141e2e;
+      --border:    #1e2d44;
+      --accent:    #00d4ff;
+      --accent2:   #ff6b2b;
+      --accent3:   #7fff6e;
+      --text:      #e8f4ff;
+      --muted:     #5a7a9a;
+      --glow:      0 0 24px rgba(0,212,255,0.18);
+      --glow2:     0 0 24px rgba(255,107,43,0.18);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Space Grotesk', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── Animated grid background ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      z-index: 0;
+    }
+
+    /* Animated orb */
+    body::after {
+      content: '';
+      position: fixed;
+      width: 700px; height: 700px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(0,212,255,0.06) 0%, transparent 70%);
+      top: -200px; right: -200px;
+      z-index: 0;
+      animation: pulse 8s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); opacity: 1; }
+      50%       { transform: scale(1.1); opacity: 0.7; }
+    }
+
+    .page-wrap {
+      position: relative; z-index: 1;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    /* ── Header ── */
+    header {
+      text-align: center;
+      margin-bottom: 48px;
+      animation: fadeDown 0.7s ease both;
+    }
+
+    .logo-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin-bottom: 10px;
+    }
+
+    .bolt {
+      font-size: 3rem;
+      filter: drop-shadow(0 0 16px var(--accent));
+      animation: flicker 3s infinite;
+    }
+
+    @keyframes flicker {
+      0%,95%,100% { opacity: 1; }
+      96%          { opacity: 0.4; }
+      97%          { opacity: 1; }
+      98%          { opacity: 0.6; }
+    }
+
+    h1 {
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, var(--accent), #7eb8ff, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      background-size: 200%;
+      animation: shimmer 4s linear infinite;
+    }
+
+    @keyframes shimmer {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 200% 50%; }
+    }
+
+    .subtitle {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-top: 6px;
+      letter-spacing: 0.04em;
+    }
+
+    /* ── Stats row ── */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 36px;
+      animation: fadeUp 0.7s 0.1s ease both;
+    }
+
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 16px;
+      text-align: center;
+      transition: border-color 0.3s, box-shadow 0.3s;
+    }
+
+    .stat-card:hover {
+      border-color: var(--accent);
+      box-shadow: var(--glow);
+    }
+
+    .stat-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .stat-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.3rem;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    /* ── Main grid ── */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 32px;
+      animation: fadeUp 0.7s 0.2s ease both;
+    }
+
+    .card-title {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      margin-bottom: 24px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── Form ── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .form-group.full { grid-column: 1 / -1; }
+
+    label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+    }
+
+    input, select {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.95rem;
+      padding: 11px 14px;
+      width: 100%;
+      transition: border-color 0.25s, box-shadow 0.25s;
+      outline: none;
+      -webkit-appearance: none;
+    }
+
+    input:focus, select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(0,212,255,0.1);
+    }
+
+    select option { background: var(--surface); }
+
+    /* Range slider */
+    .range-wrap {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    input[type="range"] {
+      flex: 1;
+      padding: 0;
+      height: 4px;
+      background: var(--border);
+      border: none;
+      border-radius: 4px;
+      accent-color: var(--accent);
+      cursor: pointer;
+    }
+
+    .range-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1rem;
+      color: var(--accent);
+      min-width: 52px;
+      text-align: right;
+    }
+
+    /* ── Predict button ── */
+    .btn-predict {
+      width: 100%;
+      margin-top: 22px;
+      padding: 15px;
+      background: linear-gradient(135deg, var(--accent), #0095b3);
+      border: none;
+      border-radius: 12px;
+      color: #080c14;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn-predict:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 30px rgba(0,212,255,0.4);
+    }
+
+    .btn-predict:active { transform: translateY(0); }
+
+    .btn-predict::before {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%;
+      width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+      transition: left 0.5s;
+    }
+
+    .btn-predict:hover::before { left: 100%; }
+
+    /* ── Result panel ── */
+    .result-card {
+      position: sticky;
+      top: 24px;
+    }
+
+    .result-placeholder {
+      text-align: center;
+      padding: 48px 16px;
+      color: var(--muted);
+    }
+
+    .result-placeholder .icon {
+      font-size: 3.5rem;
+      margin-bottom: 12px;
+      opacity: 0.4;
+      display: block;
+    }
+
+    .result-placeholder p {
+      font-size: 0.88rem;
+      line-height: 1.6;
+    }
+
+    /* Active result */
+    .result-output { display: none; }
+
+    .₹-display {
+      text-align: center;
+      padding: 28px 0 20px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+
+    .₹-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .₹-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 4rem;
+      font-weight: 600;
+      line-height: 1;
+      color: var(--accent);
+      text-shadow: 0 0 30px rgba(0,212,255,0.5);
+    }
+
+    .₹-unit {
+      font-size: 1.2rem;
+      color: var(--muted);
+      margin-left: 4px;
+    }
+
+    .level-badge {
+      display: inline-block;
+      margin-top: 12px;
+      padding: 5px 18px;
+      border-radius: 100px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      border: 1px solid currentColor;
+    }
+
+    .result-stats {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .result-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.88rem;
+    }
+
+    .result-row .key { color: var(--muted); }
+    .result-row .val {
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    .insight-box {
+      margin-top: 22px;
+      padding: 14px 16px;
+      background: rgba(0,212,255,0.06);
+      border: 1px solid rgba(0,212,255,0.15);
+      border-radius: 10px;
+      font-size: 0.85rem;
+      color: var(--accent);
+      line-height: 1.5;
+      text-align: center;
+    }
+
+    /* ── Loading spinner ── */
+    .spinner {
+      display: none;
+      width: 28px; height: 28px;
+      border: 3px solid rgba(0,212,255,0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 40px auto;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Error box ── */
+    .error-box {
+      display: none;
+      margin-top: 16px;
+      padding: 12px 16px;
+      background: rgba(244,67,54,0.1);
+      border: 1px solid rgba(244,67,54,0.3);
+      border-radius: 10px;
+      color: #ff6b6b;
+      font-size: 0.85rem;
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      margin-top: 56px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      letter-spacing: 0.06em;
+    }
+
+    footer span { color: var(--accent); }
+
+    /* ── Animations ── */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-in {
+      animation: popIn 0.45s cubic-bezier(0.34,1.56,0.64,1) both;
+    }
+
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.85); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 768px) {
+      .main-grid  { grid-template-columns: 1fr; }
+      .stats-row  { grid-template-columns: repeat(2, 1fr); }
+      .form-grid  { grid-template-columns: 1fr; }
+      .form-group.full { grid-column: unset; }
+      .result-card { position: static; }
+    }
+  </style>
+</head>
+
+<body>
+<div class="page-wrap">
+
+  <!-- Header -->
+  <header>
+    <div class="logo-row">
+      <span class="bolt">⚡</span>
+      <h1>ATM Cash Demand Forecast</h1>
+    </div>
+    <p class="subtitle">XGBoost · Seasonal Decomposition · Real-Time Prediction</p>
+  </header>
+
+  <!-- Model stats -->
+  <div class="stats-row" id="statsRow">
+    <div class="stat-card">
+      <div class="stat-label">Model</div>
+      <div class="stat-value" style="font-size:0.9rem">XGBoost</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">R² Score</div>
+      <div class="stat-value" id="metaR2">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">MAE</div>
+      <div class="stat-value" id="metaMAE">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">RMSE</div>
+      <div class="stat-value" id="metaRMSE">—</div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="main-grid">
+
+    <!-- Input form -->
+    <div class="card">
+      <div class="card-title">⚙ Input Parameters</div>
+
+      <div class="form-grid">
+
+        <div class="form-group">
+          <label>ATM ID</label>
+          <select id="atm_id">
+            <option value="1">ATM 1</option>
+            <option value="2">ATM 2</option>
+            <option value="3">ATM 3</option>
+            <option value="4" selected>ATM 4</option>
+            <option value="5">ATM 5</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Select Date</label>
+          <input type="date" id="date">
+        </div>
+
+      </div>
+
+      <button class="btn-predict" onclick="predict()">
+        ⚡ Predict Withdrawal
+      </button>
+
+      <div class="error-box" id="errorBox"></div>
+    </div>
+
+    <!-- Result panel -->
+    <div class="card result-card" id="resultCard">
+      <div class="card-title">📊 Prediction Result</div>
+
+      <div class="result-placeholder" id="placeholder">
+        <span class="icon">🔮</span>
+        <p>Fill in the parameters on the left and click <strong>Predict</strong> to get your energy forecast.</p>
+      </div>
+
+      <div class="spinner" id="spinner"></div>
+
+      <div class="result-output" id="resultOutput">
+        <div class="₹-display">
+          <div class="₹-label">Predicted Withdrawal</div>
+          <div>
+            <span class="₹-value" id="value">0.00</span>
+          </div>
+          <div>
+            <span class="level-badge" id="levelBadge">—</span>
+          </div>
+        </div>
+
+        <div class="insight-box" id="insightBox">—</div>
+      </div>
+    </div>
+
+  </div><!-- /main-grid -->
+
+  <footer>
+    Built with <span>XGBoost + STL Decomposition</span> · Flask API · 
+    Run <code>python app.py</code> to start the server
+  </footer>
+
+</div><!-- /page-wrap -->
+
+<script>
+  // ── Load metadata on startup ─────────────────────────────────────
+  fetch('/health')
+    .then(r => r.json())
+    .then(d => {
+      const m = d.metadata;
+      if (m.r2)   document.getElementById('metaR2').textContent   = m.r2.toFixed(4);
+      if (m.mae)  document.getElementById('metaMAE').textContent  = m.mae.toFixed(3);
+      if (m.rmse) document.getElementById('metaRMSE').textContent = m.rmse.toFixed(3);
+    })
+    .catch(() => {});
+
+  async function predict() {
+    const atm_id = document.getElementById("atm_id").value;
+    const date   = document.getElementById("date").value;
+
+    document.getElementById("placeholder").style.display = "none";
+    document.getElementById("resultOutput").style.display = "none";
+    document.getElementById("spinner").style.display = "block";
+    document.getElementById("errorBox").style.display = "none";
+
+      try {
+        const res = await fetch("/predict", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({atm_id,date})
+        });
+
+        const data = await res.json();
+        document.getElementById("spinner").style.display = "none";
+
+        if (data.error) {
+            document.getElementById("errorBox").innerText = data.error;
+            document.getElementById("errorBox").style.display = "block";
+            return;
+        }
+
+        document.getElementById("value").innerText =
+            "₹" + data.prediction.toLocaleString();
+
+        const badge = document.getElementById("levelBadge");
+        badge.innerText = data.level;
+        badge.style.color = data.level_color;
+        badge.style.borderColor = data.level_color;
+
+        document.getElementById("insightBox").innerText = data.insight;
+
+        document.getElementById("resultOutput").style.display = "block";
+
+      } catch (e) {
+        document.getElementById("spinner").style.display = "none";
+        document.getElementById("errorBox").innerText = "Server not running";
+        document.getElementById("errorBox").style.display = "block";
+    }
+      // Allow Enter key
+    document.addEventListener('keydown', e => {
+    if (e.key === 'Enter') predict();
+  })
+};
+</script>
+
+</body>
+</html>
